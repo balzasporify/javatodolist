@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+java {
+    sourceCompatibility = 24
+    targetCompatibility = 24
+}
+group = 'com.balza'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.0'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+}
+
+test {
+    useJUnitPlatform()
+}
