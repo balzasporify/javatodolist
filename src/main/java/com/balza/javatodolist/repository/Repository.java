@@ -4,16 +4,15 @@ import com.balza.javatodolist.model.Status;
 import com.balza.javatodolist.model.Task;
 
 import java.util.List;
-import java.util.Optional;
 
-public interface TaskRepository {
-    Task add(Task task);
+public interface Repository {
+    void add(Task task);
 
-    Optional<Task> findById(int id);
+    Task findById(int id);
 
-    Task edit(int id, Task updatedTask);
+    void edit(Task updatedTask, int id);
 
-    boolean delete(int id);
+    void delete(int id);
 
     List<Task> getAll();
 

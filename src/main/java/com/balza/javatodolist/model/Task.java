@@ -5,12 +5,14 @@ import com.balza.javatodolist.validation.Validatable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDate;
 
 @AllArgsConstructor
 @Getter
 @Setter
+@ToString
 public class Task implements Validatable {
     private final Integer uuid;
     private String name;
@@ -25,6 +27,9 @@ public class Task implements Validatable {
         }
         if (deadline == null || deadline.isBefore(LocalDate.now())) {
             throw new ValidationException("Deadline cannot be in the past");
+        }
+        if(description.length() > 100){
+            throw new ValidationException("Description cannot be longer than 100 characters");
         }
     }
 }
