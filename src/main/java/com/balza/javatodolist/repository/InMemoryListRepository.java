@@ -35,7 +35,7 @@ public class InMemoryListRepository extends AbstractRepository<Integer> {
 
     @Override
     protected void doDelete(Integer searchKey) {
-        repository.remove(searchKey);
+        repository.remove(searchKey.intValue());
     }
 
     @Override

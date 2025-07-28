@@ -19,11 +19,11 @@ public abstract class AbstractRepository<SK> implements Repository {
 
     protected abstract void doAdd(Task task, SK searchKey);
 
+    protected abstract Task doFindById(SK searchKey);
+
     protected abstract void doEdit(Task task, SK searchKey);
 
     protected abstract void doDelete(SK searchKey);
-
-    protected abstract Task doFindById(SK searchKey);
 
     protected abstract List<Task> doCopyAll();
 
