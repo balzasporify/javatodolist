@@ -6,7 +6,7 @@ import com.balza.javatodolist.model.Task;
 import java.util.List;
 
 public interface Repository {
-    void add(Task task);
+    Task add(Task task);
 
     Task findById(int id);
 

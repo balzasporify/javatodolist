@@ -2,22 +2,28 @@ package com.balza.javatodolist.repository;
 
 import com.balza.javatodolist.model.Status;
 import com.balza.javatodolist.model.Task;
-import com.balza.javatodolist.util.exception.ExistStorageException;
 import com.balza.javatodolist.util.exception.NotExistStorageException;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public abstract class AbstractRepository<SK> implements Repository {
     private static final Logger LOGGER = Logger.getLogger(AbstractRepository.class.getName());
 
+    private final AtomicInteger nextId = new AtomicInteger(0);
+
+    protected final int generateId() {
+        return nextId.getAndIncrement();
+    }
+
     protected abstract SK getSearchKey(Integer uuid);
 
     protected abstract boolean isExist(SK searchKey);
 
-    protected abstract void doAdd(Task task, SK searchKey);
+    protected abstract Task doAdd(Task task);
 
     protected abstract Task doFindById(SK searchKey);
 
@@ -28,9 +34,9 @@ public abstract class AbstractRepository<SK> implements Repository {
     protected abstract List<Task> doCopyAll();
 
     @Override
-    public void add(Task task) {
+    public Task add(Task task) {
         LOGGER.info("Adding task " + task);
-        doAdd(task, getNotExistingSearchKey(task.getUuid()));
+        return doAdd(task);
     }
 
     @Override
@@ -68,27 +74,18 @@ public abstract class AbstractRepository<SK> implements Repository {
     @Override
     public List<Task> sortByDeadline() {
         LOGGER.info("sortByDeadline");
-        List<Task> list = doCopyAll();
-        list.sort(Comparator.comparing(Task::getDeadline));
-        return list;
+        return doCopyAll().stream()
+                .sorted(Comparator.comparing(Task::getDeadline))
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<Task> sortByStatus() {
         LOGGER.info("sortByStatus");
-        List<Task> list = doCopyAll();
-        list.sort(Comparator.comparing(Task::getStatus));
-        return list;
-    }
+        return doCopyAll().stream()
+                .sorted(Comparator.comparing(Task::getStatus))
+                .collect(Collectors.toList());
 
-    protected SK getNotExistingSearchKey(Integer uuid) {
-        SK searchKey = getSearchKey(uuid);
-        if (isExist(searchKey)) {
-            LOGGER.warning("Task with id " + uuid + " already exists");
-            throw new ExistStorageException("Task with id " + uuid + " already exists");
-        } else {
-            return searchKey;
-        }
     }
 
     protected SK getExistingSearchKey(Integer uuid) {

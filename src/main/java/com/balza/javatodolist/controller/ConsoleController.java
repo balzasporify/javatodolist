@@ -14,6 +14,9 @@ public class ConsoleController {
     private final TaskService taskService;
     private final Scanner scanner;
 
+    private record TaskInputData(String name, String description, Status status, LocalDate deadline) {
+    }
+
     public ConsoleController(TaskService taskService) {
         this.taskService = taskService;
         this.scanner = new Scanner(System.in);
@@ -26,30 +29,20 @@ public class ConsoleController {
             String command = scanner.nextLine().trim().toLowerCase();
 
             try {
+                if (command.equals("exit")) {
+                    System.out.println("Exiting...");
+                    scanner.close();
+                    System.exit(0);
+                }
+
                 switch (command) {
-                    case "add":
-                        handleAddCommand();
-                        break;
-                    case "list":
-                        handleListCommand();
-                        break;
-                    case "edit":
-                        handleEditCommand();
-                        break;
-                    case "delete":
-                        handleDeleteCommand();
-                        break;
-                    case "filter":
-                        handleFilterCommand();
-                        break;
-                    case "sort":
-                        handleSortCommand();
-                        break;
-                    case "exit":
-                        System.out.println("Exiting...");
-                        System.exit(0);
-                    default:
-                        System.out.println("Unknown command. Try again.");
+                    case "add" -> handleAddCommand();
+                    case "list" -> handleListCommand();
+                    case "edit" -> handleEditCommand();
+                    case "delete" -> handleDeleteCommand();
+                    case "filter" -> handleFilterCommand();
+                    case "sort" -> handleSortCommand();
+                    default -> System.out.println("Unknown command. Try again.");
                 }
             } catch (ValidationException e) {
                 System.out.println("Validation error: " + e.getMessage());
@@ -57,22 +50,29 @@ public class ConsoleController {
                 System.out.println("Error: " + e.getMessage());
             } catch (DateTimeParseException e) {
                 System.out.println("Invalid date format. Use yyyy-mm-dd.");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid input. For status, use: TODO, IN_PROGRESS, DONE. For numbers, use digits.");
             } catch (Exception e) {
                 System.out.println("An unexpected error occurred: " + e.getMessage());
             }
         }
     }
 
-    private void handleAddCommand() {
+    private TaskInputData readTaskDetailsFromConsole() {
         System.out.println("Enter task name: ");
         String name = scanner.nextLine();
         System.out.println("Enter description:");
         String description = scanner.nextLine();
-        System.out.println("Enter deadline (yyyy-mm-dd):");
-        LocalDate deadline = LocalDate.parse(scanner.nextLine());
         System.out.println("Enter status (TODO/IN_PROGRESS/DONE):");
         Status status = Status.valueOf(scanner.nextLine().toUpperCase());
-        Task task = taskService.addTask(name, description, status, deadline);
+        System.out.println("Enter deadline (yyyy-mm-dd):");
+        LocalDate deadline = LocalDate.parse(scanner.nextLine());
+        return new TaskInputData(name, description, status, deadline);
+    }
+
+    private void handleAddCommand() {
+        TaskInputData inputData = readTaskDetailsFromConsole();
+        Task task = taskService.addTask(inputData.name(), inputData.description(), inputData.status(), inputData.deadline());
         System.out.println("Task added successfully: " + task);
     }
 
@@ -84,16 +84,9 @@ public class ConsoleController {
         System.out.println("Enter task ID to edit:");
         int id = Integer.parseInt(scanner.nextLine());
         Task currentTask = taskService.findTaskById(id);
-        System.out.println("Current task: " + currentTask);
-        System.out.println("Enter new name:");
-        String name = scanner.nextLine();
-        System.out.println("Enter new description:");
-        String description = scanner.nextLine();
-        System.out.println("Enter new deadline (yyyy-mm-dd):");
-        LocalDate deadline = LocalDate.parse(scanner.nextLine());
-        System.out.println("Enter new status (TODO/IN_PROGRESS/DONE):");
-        Status status = Status.valueOf(scanner.nextLine().toUpperCase());
-        Task updatedTask = taskService.editTask(id, name, description, status, deadline);
+        System.out.println("Enter new details for current task: " + currentTask);
+        TaskInputData inputData = readTaskDetailsFromConsole();
+        Task updatedTask = taskService.editTask(id, inputData.name(), inputData.description(), inputData.status(), inputData.deadline());
         System.out.println("Task updated successfully: " + updatedTask);
     }
 
@@ -102,13 +95,11 @@ public class ConsoleController {
         int id = Integer.parseInt(scanner.nextLine());
         if (taskService.removeTask(id)) {
             System.out.println("Task deleted successfully");
-        } else {
-            System.out.println("Task not found");
         }
     }
 
     private void handleFilterCommand() {
-        System.out.println("Enter status to filter (TODO/IN_PROGRESS/DONE):");
+        System.out.println("Enter status to filter (TODO/IN_PROGRESS/DONE): ");
         Status status = Status.valueOf(scanner.nextLine().toUpperCase());
         taskService.getTasksByStatus(status).forEach(System.out::println);
     }

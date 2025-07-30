@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public class InMemoryMapRepository extends AbstractRepository<Task> {
-    protected Map<Integer, Task> repository = new HashMap<>();
+    private final Map<Integer, Task> repository = new HashMap<>();
 
     @Override
     protected Task getSearchKey(Integer uuid) {
@@ -21,8 +21,11 @@ public class InMemoryMapRepository extends AbstractRepository<Task> {
     }
 
     @Override
-    protected void doAdd(Task task, Task searchKey) {
-        repository.put(task.getUuid(), task);
+    protected Task doAdd(Task task) {
+        int newId = generateId();
+        task.setUuid(newId);
+        repository.put(newId, task);
+        return task;
     }
 
     @Override

@@ -14,11 +14,15 @@ import java.time.LocalDate;
 @Setter
 @ToString
 public class Task implements Validatable {
-    private final Integer uuid;
+    private Integer uuid;
     private String name;
     private String description;
     private Status status;
     private LocalDate deadline;
+
+    public Task(String name, String description, Status status, LocalDate deadline) {
+        this(null, name, description, status, deadline);
+    }
 
     @Override
     public void validate() {
@@ -28,7 +32,7 @@ public class Task implements Validatable {
         if (deadline == null || deadline.isBefore(LocalDate.now())) {
             throw new ValidationException("Deadline cannot be in the past");
         }
-        if(description.length() > 100){
+        if (description.length() > 100) {
             throw new ValidationException("Description cannot be longer than 100 characters");
         }
     }

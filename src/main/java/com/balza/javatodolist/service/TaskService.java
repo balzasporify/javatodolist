@@ -13,23 +13,17 @@ import java.util.logging.Logger;
 public class TaskService {
     public static final Logger LOGGER = Logger.getLogger(TaskService.class.getName());
     private final Repository repository;
-    private int nextId = 0;
 
     public TaskService(Repository repository) {
         this.repository = repository;
     }
 
-    private Integer generateId() {
-        return nextId++;
-    }
-
     public Task addTask(String name, String description, Status status, LocalDate deadline) {
         LOGGER.info("Processing add request for task: " + name);
-        Task task = new Task(generateId(), name, description, status, deadline);
+        Task task = new Task(name, description, status, deadline);
         task.validate();
         try {
-            repository.add(task);
-            return task;
+            return repository.add(task);
         } catch (ExistStorageException e) {
             LOGGER.warning("Failed to process add request for task " + name + ": " + e.getMessage());
             throw e;

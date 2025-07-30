@@ -24,8 +24,11 @@ public class InMemoryListRepository extends AbstractRepository<Integer> {
     }
 
     @Override
-    protected void doAdd(Task task, Integer searchKey) {
+    protected Task doAdd(Task task) {
+        int newId = generateId();
+        task.setUuid(newId);
         repository.add(task);
+        return task;
     }
 
     @Override
@@ -45,7 +48,7 @@ public class InMemoryListRepository extends AbstractRepository<Integer> {
 
     @Override
     protected List<Task> doCopyAll() {
-        return repository;
+        return new ArrayList<>(repository);
     }
 
     private int size() {
