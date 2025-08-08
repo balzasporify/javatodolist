@@ -4,7 +4,7 @@ import com.balza.javatodolist.model.Status;
 import com.balza.javatodolist.model.Task;
 import com.balza.javatodolist.repository.Repository;
 import com.balza.javatodolist.util.exception.NotExistStorageException;
-import com.balza.javatodolist.util.exception.ValidationException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,68 +31,90 @@ class TaskServiceTest {
     private TaskService taskService;
 
     @Test
+    @DisplayName("addTask | Успешно добавляет задачу, если данные корректны")
     void addTask_shouldReturnTaskWithId_whenDataIsValid() {
-        String name = "New Task";
-        String description = "Description";
-        LocalDate deadline = LocalDate.now().plusDays(1);
-        Task taskWithId = new Task(0, name, description, Status.TODO, deadline);
+        LocalDate validDate = LocalDate.now().plusDays(1);
+        Task taskWithId = new Task(0, "New Task", "Desc", Status.TODO, ZonedDateTime.now());
 
         when(repository.add(any(Task.class))).thenReturn(taskWithId);
 
-        Task result = taskService.addTask(name, description, Status.TODO, deadline);
+        Task result = taskService.addTask("New Task", "Desc", Status.TODO, validDate);
 
         assertNotNull(result);
         assertEquals(0, result.getUuid());
-        assertEquals(name, result.getName());
         verify(repository).add(any(Task.class));
     }
 
     @Test
-    void addTask_shouldThrowValidationException_whenDeadlineIsInPast() {
-        LocalDate pastDeadline = LocalDate.now().minusDays(1);
+    @DisplayName("addTask | Возвращает null, если данные для задачи невалидны")
+    void addTask_shouldReturnNull_whenDataIsInvalid() {
+        LocalDate pastDate = LocalDate.now().minusDays(1);
 
-        assertThrows(ValidationException.class, () -> taskService.addTask("Invalid Task", "Desc", Status.TODO, pastDeadline));
+        Task result = taskService.addTask("Invalid Task", "Desc", Status.TODO, pastDate);
 
+        assertNull(result);
         verify(repository, never()).add(any(Task.class));
     }
 
     @Test
+    @DisplayName("findTaskById | Возвращает задачу, если она существует")
     void findTaskById_shouldReturnTask_whenTaskExists() {
         int taskId = 1;
-        Task expectedTask = new Task(taskId, "Existing Task", "Desc", Status.IN_PROGRESS, LocalDate.now());
+        Task expectedTask = new Task(taskId, "Existing Task", "Desc", Status.IN_PROGRESS, ZonedDateTime.now());
         when(repository.findById(taskId)).thenReturn(expectedTask);
 
         Task actualTask = taskService.findTaskById(taskId);
 
-        assertNotNull(actualTask);
-        assertEquals(taskId, actualTask.getUuid());
+        assertEquals(expectedTask, actualTask);
         verify(repository).findById(taskId);
     }
 
     @Test
-    void findTaskById_shouldThrowException_whenTaskDoesNotExist() {
+    @DisplayName("findTaskById | Возвращает null, если задача не существует")
+    void findTaskById_shouldReturnNull_whenTaskDoesNotExist() {
         int taskId = 99;
-        when(repository.findById(taskId)).thenThrow(new NotExistStorageException("Task not found"));
+        when(repository.findById(taskId)).thenThrow(new NotExistStorageException("..."));
 
-        assertThrows(NotExistStorageException.class, () -> taskService.findTaskById(taskId));
+        Task result = taskService.findTaskById(taskId);
+
+        assertNull(result);
     }
 
     @Test
-    void editTask_shouldUpdateTask_whenDataIsValid() {
+    @DisplayName("editTask | Успешно редактирует задачу, если она существует и данные валидны")
+    void editTask_shouldReturnUpdatedTask_whenSuccessful() {
         int taskId = 1;
+        LocalDate validDate = LocalDate.now().plusDays(1);
+        Task existingTask = new Task(taskId, "Old Name", "Old Desc", Status.TODO, ZonedDateTime.now());
+
+        when(repository.findById(taskId)).thenReturn(existingTask);
+
         ArgumentCaptor<Task> taskCaptor = ArgumentCaptor.forClass(Task.class);
 
-        taskService.editTask(taskId, "Updated Name", "Updated Desc", Status.DONE, LocalDate.now().plusDays(5));
+        Task result = taskService.editTask(taskId, "New Name", "New Desc", Status.IN_PROGRESS, validDate);
+
+        assertNotNull(result);
+        assertEquals("New Name", result.getName());
 
         verify(repository).edit(taskCaptor.capture(), eq(taskId));
-
-        Task capturedTask = taskCaptor.getValue();
-        assertEquals(taskId, capturedTask.getUuid());
-        assertEquals("Updated Name", capturedTask.getName());
-        assertEquals(Status.DONE, capturedTask.getStatus());
+        assertEquals("New Name", taskCaptor.getValue().getName());
     }
 
     @Test
+    @DisplayName("editTask | Возвращает null, если задача для редактирования не найдена")
+    void editTask_shouldReturnNull_whenTaskNotFound() {
+        int taskId = 99;
+        LocalDate validDate = LocalDate.now().plusDays(1);
+        when(repository.findById(taskId)).thenThrow(new NotExistStorageException("..."));
+
+        Task result = taskService.editTask(taskId, "any", "any", Status.TODO, validDate);
+
+        assertNull(result);
+        verify(repository, never()).edit(any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("removeTask | Возвращает true, если задача успешно удалена")
     void removeTask_shouldReturnTrue_whenTaskExists() {
         int taskId = 1;
 
@@ -102,9 +125,10 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("removeTask | Возвращает false, если задача для удаления не найдена")
     void removeTask_shouldReturnFalse_whenTaskDoesNotExist() {
         int taskId = 99;
-        doThrow(new NotExistStorageException("Not Found")).when(repository).delete(taskId);
+        doThrow(new NotExistStorageException("...")).when(repository).delete(taskId);
 
         boolean result = taskService.removeTask(taskId);
 
@@ -113,8 +137,9 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("getAllTasks | Возвращает список всех задач")
     void getAllTasks_shouldReturnListOfTasks() {
-        List<Task> expectedTasks = List.of(new Task(1, "Task 1", "d", Status.TODO, LocalDate.now()));
+        List<Task> expectedTasks = List.of(new Task(1, "Task 1", "d", Status.TODO, ZonedDateTime.now()));
         when(repository.getAll()).thenReturn(expectedTasks);
 
         List<Task> actualTasks = taskService.getAllTasks();
@@ -124,8 +149,9 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("getTasksByStatus | Возвращает отфильтрованный по статусу список")
     void getTasksByStatus_shouldReturnFilteredList() {
-        List<Task> expectedTasks = List.of(new Task(1, "Done Task", "d", Status.DONE, LocalDate.now()));
+        List<Task> expectedTasks = List.of(new Task(1, "Done Task", "d", Status.DONE, ZonedDateTime.now()));
         when(repository.filterByStatus(Status.DONE)).thenReturn(expectedTasks);
 
         List<Task> actualTasks = taskService.getTasksByStatus(Status.DONE);
@@ -135,10 +161,11 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("getSortedTasksByDeadline | Возвращает отсортированный по дедлайну список")
     void getSortedTasksByDeadline_shouldReturnSortedListByDeadLine() {
         List<Task> expectedTasks = List.of(
-                new Task(1, "Task 1", "d", Status.TODO, LocalDate.parse("2025-08-01")),
-                new Task(2, "Task 2", "d", Status.TODO, LocalDate.parse("2025-08-10"))
+                new Task(1, "Task 1", "d", Status.TODO, ZonedDateTime.parse("2025-08-01T00:00:00Z")),
+                new Task(2, "Task 2", "d", Status.TODO, ZonedDateTime.parse("2025-08-10T00:00:00Z"))
         );
         when(repository.sortByDeadline()).thenReturn(expectedTasks);
 
@@ -149,10 +176,11 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("getSortedTasksByStatus | Возвращает отсортированный по статусу список")
     void getSortedTasksByStatus_shouldReturnSortedListByStatus() {
         List<Task> expectedTasks = List.of(
-                new Task(1, "Task A", "d", Status.DONE, LocalDate.now()),
-                new Task(2, "Task B", "d", Status.IN_PROGRESS, LocalDate.now())
+                new Task(1, "Task A", "d", Status.DONE, ZonedDateTime.now()),
+                new Task(2, "Task B", "d", Status.IN_PROGRESS, ZonedDateTime.now())
         );
         when(repository.sortByStatus()).thenReturn(expectedTasks);
 
